@@ -1,5 +1,5 @@
 {
-  "name": "nopeify-app",
+  "name": "nope-app",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -9,13 +9,16 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
     "expo": "~54.0.25",
+    "expo-clipboard": "~8.0.7",
+    "expo-haptics": "^15.0.7",
     "expo-linear-gradient": "~15.0.7",
     "expo-status-bar": "~3.0.8",
+    "lucide-react-native": "^0.477.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-modal": "^14.0.0-rc.1"
+    "react-native-modal": "^14.0.0-rc.1",
+    "react-native-svg": "^15.15.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
