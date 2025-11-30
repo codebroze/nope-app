@@ -12,13 +12,21 @@ import { ToneGrid } from './src/components/ToneGrid'
 import { GenerateButton } from './src/components/GenerateButton'
 import { ResultModal } from './src/components/ResultModal'
 import { AccountSheet } from './src/components/AccountSheet'
-import { TONES, RESPONSES } from './src/constants/data'
+import { ToneCreationModal } from './src/components/ToneCreationModal'
+import { TONES, RESPONSES, Tone } from './src/constants/data'
 import {
   OPENROUTER_API_KEY,
   OPENROUTER_MODEL,
   PRIVACY_URL,
   TERMS_URL
 } from './src/constants/config'
+import {
+  loadCustomTones,
+  saveCustomTone,
+  deleteCustomTone,
+  loadPremiumStatus,
+  savePremiumStatus
+} from './src/utils/customTones'
 
 const App: React.FC = () => {
   const [context, setContext] = useState('')
@@ -30,6 +38,9 @@ const App: React.FC = () => {
   const [copied, setCopied] = useState(false)
   const [showAccountSheet, setShowAccountSheet] = useState(false)
   const [inputError, setInputError] = useState(false)
+  const [customTones, setCustomTones] = useState<Tone[]>([])
+  const [isPremium, setIsPremium] = useState(false)
+  const [showToneCreationModal, setShowToneCreationModal] = useState(false)
 
   const MIN_INPUT_CHARS = 12
 
@@ -37,6 +48,21 @@ const App: React.FC = () => {
     Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0'
 
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        const [loadedCustomTones, loadedPremiumStatus] = await Promise.all([
+          loadCustomTones(),
+          loadPremiumStatus()
+        ])
+        setCustomTones(loadedCustomTones)
+        setIsPremium(loadedPremiumStatus)
+      } catch (error) {
+        console.error('Failed to initialize app:', error)
+      }
+    }
+
+    initializeApp()
+
     // Only auto-generate when there is starter text that meets the minimum.
     if (context.trim().length >= MIN_INPUT_CHARS) {
       generateResponse(false).catch(error => {
@@ -66,11 +92,66 @@ const App: React.FC = () => {
     }
   }
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     Alert.alert(
       'Premium coming soon',
       'We will notify you when premium perks are ready.'
     )
+  }
+
+  const handleTogglePremium = async (newStatus: boolean) => {
+    try {
+      await savePremiumStatus(newStatus)
+      setIsPremium(newStatus)
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update premium status')
+    }
+  }
+
+  const handleCreateTone = () => {
+    if (!isPremium) {
+      Alert.alert(
+        'Premium Feature',
+        'Custom tones are a premium feature. Upgrade to create your own tones!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: handleUpgrade }
+        ]
+      )
+      return
+    }
+    setShowToneCreationModal(true)
+  }
+
+  const handleSaveCustomTone = async (tone: {
+    id: string
+    label: string
+    emoji: string
+    desc: string
+  }) => {
+    try {
+      await saveCustomTone(tone)
+      const updatedTones = await loadCustomTones()
+      setCustomTones(updatedTones)
+      Alert.alert('Success', `"${tone.label}" tone created!`)
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save custom tone')
+    }
+  }
+
+  const handleDeleteCustomTone = async (toneId: string) => {
+    try {
+      await deleteCustomTone(toneId)
+      const updatedTones = await loadCustomTones()
+      setCustomTones(updatedTones)
+
+      if (selectedTone === toneId) {
+        setSelectedTone('sarcastic')
+        setToneUsed('sarcastic')
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete custom tone')
+    }
   }
 
   const hasMinInput = context.trim().length >= MIN_INPUT_CHARS
@@ -85,7 +166,8 @@ const App: React.FC = () => {
     setCopied(false)
     setInputError(false)
 
-    const tonePool = TONES.filter(t => t.id !== 'random')
+    const allTones = [...TONES, ...customTones]
+    const tonePool = allTones.filter(t => t.id !== 'random')
     const resolvedToneId =
       selectedTone === 'random'
         ? tonePool[Math.floor(Math.random() * tonePool.length)]?.id ||
@@ -94,7 +176,7 @@ const App: React.FC = () => {
 
     setToneUsed(resolvedToneId)
 
-    const toneMeta = TONES.find(t => t.id === resolvedToneId)
+    const toneMeta = allTones.find(t => t.id === resolvedToneId)
     const fallbackOptions =
       RESPONSES[resolvedToneId] || RESPONSES.sarcastic
     const toneExamples = fallbackOptions
@@ -226,6 +308,10 @@ const App: React.FC = () => {
               setToneUsed(tone)
             }
           }}
+          customTones={customTones}
+          onCreateTone={handleCreateTone}
+          onDeleteTone={handleDeleteCustomTone}
+          isPremium={isPremium}
         />
       </ScrollView>
 
@@ -244,6 +330,8 @@ const App: React.FC = () => {
         appVersion={appVersion}
         privacyUrl={PRIVACY_URL}
         termsUrl={TERMS_URL}
+        isPremium={isPremium}
+        onTogglePremium={handleTogglePremium}
       />
 
       <ResultModal
@@ -258,6 +346,12 @@ const App: React.FC = () => {
           setShowResultSheet(false)
           setContext('')
         }}
+      />
+
+      <ToneCreationModal
+        visible={showToneCreationModal}
+        onClose={() => setShowToneCreationModal(false)}
+        onSave={handleSaveCustomTone}
       />
     </View>
   )

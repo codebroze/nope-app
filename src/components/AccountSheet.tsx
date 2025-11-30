@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Linking,
-  Alert
+  Alert,
+  Switch
 } from 'react-native'
 import Modal from 'react-native-modal'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -16,7 +17,8 @@ import {
   Sparkles,
   ChevronRight,
   ChevronDown,
-  UserRound
+  UserRound,
+  Crown
 } from 'lucide-react-native'
 
 type AccountSheetProps = {
@@ -26,6 +28,8 @@ type AccountSheetProps = {
   appVersion: string
   privacyUrl: string
   termsUrl: string
+  isPremium?: boolean
+  onTogglePremium?: (value: boolean) => void
 }
 
 export const AccountSheet: React.FC<AccountSheetProps> = ({
@@ -34,7 +38,9 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({
   onUpgrade,
   appVersion,
   privacyUrl,
-  termsUrl
+  termsUrl,
+  isPremium = false,
+  onTogglePremium
 }) => {
   const openLink = async (url: string) => {
     try {
@@ -72,6 +78,21 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({
         </View>
 
         <View style={styles.accountCard}>
+          {onTogglePremium && (
+            <View style={styles.accountRow}>
+              <View style={styles.accountRowLeft}>
+                <Crown size={18} color="#f59e0b" strokeWidth={2.5} />
+                <Text style={styles.accountRowText}>Premium Status</Text>
+              </View>
+              <Switch
+                value={isPremium}
+                onValueChange={onTogglePremium}
+                trackColor={{ false: '#e2e8f0', true: '#fbbf24' }}
+                thumbColor={isPremium ? '#f59e0b' : '#94a3b8'}
+              />
+            </View>
+          )}
+
           <TouchableOpacity
             style={styles.accountRow}
             onPress={() => openLink(privacyUrl)}>
@@ -101,25 +122,27 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={onUpgrade}
-          activeOpacity={0.8}
-          style={styles.upgradeButton}>
-          <LinearGradient
-            colors={['#fbbf24', '#f59e0b']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.upgradeGradient}>
-            <Sparkles size={18} color="#1f2937" strokeWidth={2.5} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upgradeTitle}>Unlock Premium</Text>
-              <Text style={styles.upgradeSubtitle}>
-                Early access to spicier tones and unlimited generations.
-              </Text>
-            </View>
-            <ChevronRight size={16} color="#1f2937" strokeWidth={2.5} />
-          </LinearGradient>
-        </TouchableOpacity>
+{!isPremium && (
+          <TouchableOpacity
+            onPress={onUpgrade}
+            activeOpacity={0.8}
+            style={styles.upgradeButton}>
+            <LinearGradient
+              colors={['#fbbf24', '#f59e0b']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.upgradeGradient}>
+              <Sparkles size={18} color="#1f2937" strokeWidth={2.5} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.upgradeTitle}>Unlock Premium</Text>
+                <Text style={styles.upgradeSubtitle}>
+                  Create custom tones and unlock exclusive features.
+                </Text>
+              </View>
+              <ChevronRight size={16} color="#1f2937" strokeWidth={2.5} />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={onClose}
